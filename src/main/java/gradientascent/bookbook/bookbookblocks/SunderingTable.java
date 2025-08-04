@@ -25,7 +25,6 @@ public class SunderingTable extends Block {
                 .luminance((BlockState state) -> BookBookBlocks.getLuminance())
                 .strength(3.0f, 1200.0f).requiresTool()
                 .allowsSpawning((state, world, pos, type) -> BookBookBlocks.getSpawning())
-                .dropsLike(Blocks.ENCHANTING_TABLE)
         );
         setDefaultState(getDefaultState().with(IN_USE, false));
     }
