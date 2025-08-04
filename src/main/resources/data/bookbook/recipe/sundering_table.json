@@ -1,0 +1,26 @@
+{
+    "type": "minecraft:crafting_shaped",
+    "pattern": [
+        " # ",
+        "nOn",
+        "ODO"
+    ],
+    "key": {
+        "#": {
+            "item": "minecraft:blue_carpet"
+        },
+        "n": {
+            "item": "minecraft:netherite_ingot"
+        },
+        "O": {
+            "item": "minecraft:obsidian"
+        },
+        "D": {
+            "item": "minecraft:deepslate"
+        }
+    },
+    "result": {
+        "id": "bookbook:sundering_table",
+        "count": 1
+    }
+}
