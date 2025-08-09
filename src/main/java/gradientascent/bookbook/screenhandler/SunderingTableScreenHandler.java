@@ -4,15 +4,21 @@ import gradientascent.bookbook.bookbookblocks.BookBookBlocks;
 import gradientascent.bookbook.bookbookblocks.entities.SunderingTableBlockEntity;
 import gradientascent.bookbook.network.BlockPosPayload;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import net.minecraft.component.ComponentMap;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SimpleInventory;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemConvertible;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.screen.ArrayPropertyDelegate;
 import net.minecraft.screen.PropertyDelegate;
@@ -230,42 +236,34 @@ public class SunderingTableScreenHandler extends ScreenHandler {
 
     private void updateOutputSlots() {
         if (!(output.getStack(0).isEmpty() && output.getStack(1).isEmpty())) return;
-        ItemStack inputStack = this.input.getStack(0);
-        ItemStack itemStack = new ItemStack(inputStack.getItem(), inputStack.getCount());
-        itemStack.applyComponentsFrom(inputStack.getComponents());
-//        ItemEnchantmentsComponent enchComp = itemStack.get(DataComponentTypes.ENCHANTMENTS);
-//        if (enchComp != null) {
-//            enchComp.getEnchantmentEntries().clear();
-//        }
-        ItemStack bookStack = this.input.getStack(1);
-        if (inputStack.isEmpty() || bookStack.isEmpty()) {
+        ItemStack itemStack = this.input.getStack(0).copy();
+        ItemStack bookStack = new ItemStack(this.input.getStack(1).getItem(), 1);
+        if (itemStack.isEmpty() || bookStack.isEmpty()) {
             this.output.setStack(0, ItemStack.EMPTY);
             this.output.setStack(1, ItemStack.EMPTY);
             return;
         }
-        // Copy input stacks to output slots (clone them)
-        ItemStack outputStack0 = new ItemStack(itemStack.getItem(), 1);
-        ItemStack outputStack1 = new ItemStack(bookStack.getItem(), 1);
-        // Get enchantments from original inputStack
-        ItemEnchantmentsComponent enchantments = inputStack.get(DataComponentTypes.ENCHANTMENTS);
+        ItemEnchantmentsComponent enchantments = itemStack.copy().get(DataComponentTypes.ENCHANTMENTS);
         if (enchantments == null) return;
-        // Convert enchantments set to list
+        ItemStack freshStack = new ItemStack(itemStack.getItem(), 1);
+        ItemEnchantmentsComponent emptyEnchantments = freshStack.get(DataComponentTypes.ENCHANTMENTS);
+        itemStack.set(DataComponentTypes.ENCHANTMENTS, emptyEnchantments);
         List<Object2IntMap.Entry<RegistryEntry<Enchantment>>> entries = new ArrayList<>(enchantments.getEnchantmentEntries());
         int half = entries.size() / 2;
         List<Object2IntMap.Entry<RegistryEntry<Enchantment>>> list = new ArrayList<>(entries);
         for (int i = 0; i < half; i++) {
-            RegistryEntry<Enchantment> enchEntry = list.get(i).getKey();
+            RegistryEntry<Enchantment> enchantEntry = list.get(i).getKey();
             int level = list.get(i).getIntValue();
-            outputStack0.addEnchantment(enchEntry, level);
+            itemStack.addEnchantment(enchantEntry, level);
         }
         for (int i = half; i < list.size(); i++) {
-            RegistryEntry<Enchantment> enchEntry = list.get(i).getKey();
+            RegistryEntry<Enchantment> enchantEntry = list.get(i).getKey();
             int level = list.get(i).getIntValue();
-            outputStack1.addEnchantment(enchEntry, level);
+            bookStack.addEnchantment(enchantEntry, level);
         }
         // Set output slots with modified stacks
-        this.output.setStack(0, outputStack0);
-        this.output.setStack(1, outputStack1);
+        this.output.setStack(0, itemStack);
+        this.output.setStack(1, bookStack);
     }
 }
 
