@@ -144,6 +144,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
     }
 
     private void clearInputSlots() {
+        if (output.getStack(0).isEmpty() || output.getStack(1).isEmpty()) return;
         this.input.markDirty();
         this.input.getStack(0).setCount(input.getStack(0).getCount() - 1);
         this.input.getStack(1).setCount(input.getStack(1).getCount() - 1);
@@ -210,11 +211,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         ) {
             Slot outputSlot = this.slots.get(slotIndex);
             outputSlot.markDirty();
-            if (!inputsConsumed) {
-                clearInputSlots();
-                inputsConsumed = true;
-            }
-            if (output.getStack(0).isEmpty() && output.getStack(1).isEmpty()) inputsConsumed = false;
+            clearInputSlots();
         }
         if ((slotIndex == 0 || slotIndex == 1) && actionType == SlotActionType.PICKUP) {
             updateOutputSlots();
