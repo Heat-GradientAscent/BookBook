@@ -1,23 +1,24 @@
 package gradientascent.bookbook.bookbookblocks;
 
+import gradientascent.bookbook.bookbookblocks.entities.SunderingTableBlockEntity;
 import net.minecraft.block.*;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.Hand;
+import net.minecraft.util.ItemActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.World;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.jetbrains.annotations.Nullable;
 
-import static gradientascent.bookbook.BookBook.MOD_ID;
-
-public class SunderingTable extends Block {
-    public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+public class SunderingTable extends Block implements BlockEntityProvider {
     public SunderingTable(Settings settings) {
         super(
             settings
@@ -38,17 +39,21 @@ public class SunderingTable extends Block {
 
     @Override
     protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
-        if (!player.getAbilities().allowModifyWorld || state.get(IN_USE)) {
-            return ActionResult.PASS;
-        } else {
-            // open GUI here
-            world.setBlockState(pos, state.with(IN_USE, true));
-            LOGGER.info("Attempted to interact, nice!");
-
-            // MOVE THIS TO WHENEVER THE GUI CLOSES
-            world.setBlockState(pos, state.with(IN_USE, false));
-            return ActionResult.SUCCESS;
+        if (!world.isClient) {
+            BlockEntity blockEntity = world.getBlockEntity(pos);
+            if (blockEntity instanceof SunderingTableBlockEntity sunderingTableBlockEntity && player != null) {
+                player.openHandledScreen(sunderingTableBlockEntity);
+                world.setBlockState(pos, state.with(IN_USE, true));
+                world.setBlockState(pos, state.with(IN_USE, false));
+            }
         }
+        return ActionResult.success(world.isClient);
+    }
+
+    // implement later for all interactions
+    @Override
+    protected ItemActionResult onUseWithItem(ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
+        return super.onUseWithItem(stack, state, world, pos, player, hand, hit);
     }
 
     @Override
@@ -61,5 +66,10 @@ public class SunderingTable extends Block {
     public VoxelShape getCollisionShape(BlockState state, BlockView view, BlockPos pos, ShapeContext context) {
         // Usually same as outline
         return getOutlineShape(state, view, pos, context);
+    }
+
+    @Override
+    public @Nullable BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+        return BlockEntityTypeInit.SUNDERING_TABLE_BLOCK_ENTITY.instantiate(pos, state);
     }
 }

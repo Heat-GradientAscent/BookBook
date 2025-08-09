@@ -1,7 +1,9 @@
 package gradientascent.bookbook;
 
+import gradientascent.bookbook.bookbookblocks.BlockEntityTypeInit;
 import gradientascent.bookbook.bookbookblocks.BookBookBlocks;
 import gradientascent.bookbook.bookbookitems.BookBookItems;
+import gradientascent.bookbook.screenhandler.ScreenHandlerTypeInit;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
@@ -20,6 +22,12 @@ public class BookBook implements ModInitializer {
 	public void onInitialize() {
 		BookBookItems.initialize();
 		BookBookBlocks.initialize();
+
+		// Entities
+		BlockEntityTypeInit.initialize();
+
+		// Screenhandlers
+		ScreenHandlerTypeInit.initialize();
 		LOGGER.info("BookBook is loaded!");
 
 	}
