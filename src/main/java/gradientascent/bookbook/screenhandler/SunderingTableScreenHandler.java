@@ -25,6 +25,7 @@ import java.util.*;
 
 public class SunderingTableScreenHandler extends ScreenHandler {
 
+    private PlayerEntity player;
     private SunderingTableBlockEntity blockEntity;
     private ScreenHandlerContext context;
     private PropertyDelegate propertyDelegate;
@@ -45,6 +46,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         this(syncId, playerInventory, (SunderingTableBlockEntity) playerInventory.player.getWorld().getBlockEntity(payload.pos()));
         var world = playerInventory.player.getWorld();
         var pos = payload.pos();
+        this.player = playerInventory.player;
         this.blockEntity = (SunderingTableBlockEntity) world.getBlockEntity(pos);
         this.context = ScreenHandlerContext.create(world, pos);
         this.propertyDelegate = new ArrayPropertyDelegate(2);
@@ -54,6 +56,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
     // server constructor (main)
     public SunderingTableScreenHandler(int syncId, PlayerInventory playerInventory, SunderingTableBlockEntity blockEntity) {
         super(ScreenHandlerTypeInit.SUNDERING_TABLE_SCREEN_TYPE, syncId);
+        this.player = playerInventory.player;
         this.blockEntity = blockEntity;
         this.context = ScreenHandlerContext.create(blockEntity.getWorld(), blockEntity.getPos());
         this.propertyDelegate = new ArrayPropertyDelegate(2);
@@ -95,13 +98,24 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         this.addSlot(new Slot(input, ITEM_SLOT, 15, 36) {
             @Override
             public boolean canInsert(ItemStack stack) {
-                return stack.hasEnchantments() && !stack.isOf(Items.ENCHANTED_GOLDEN_APPLE);
+                return (stack.hasEnchantments() || stack.isOf(Items.ENCHANTED_BOOK))
+                        && !stack.isOf(Items.ENCHANTED_GOLDEN_APPLE);
+            }
+            @Override
+            public void onTakeItem(PlayerEntity player, ItemStack stack) {
+                super.onTakeItem(player, stack);
+                updateOutputSlots();
             }
         });
         this.addSlot(new Slot(input, BOOK_SLOT, 51, 36) {
             @Override
             public boolean canInsert(ItemStack stack) {
                 return stack.isOf(Items.BOOK);
+            }
+            @Override
+            public void onTakeItem(PlayerEntity player, ItemStack stack) {
+                super.onTakeItem(player, stack);
+                updateOutputSlots();
             }
         });
     }
@@ -115,7 +129,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             }
             @Override
             public void onTakeItem(PlayerEntity player, ItemStack stack) {
-                super.onTakeItem(player, stack); // keep vanilla behavior
+                super.onTakeItem(player, stack);
                 clearInputSlots();
                 updateOutputSlots();
             }
@@ -138,8 +152,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
     @Override
     public void onClosed(PlayerEntity player) {
         super.onClosed(player);
-        if (!player.getWorld().isClient) {
-            this.dropInventory(player, this.input);
+        if (!player.getWorld().isClient && hasConsumed) {
             for (int i = 0; i < 2; i++) {
                 ItemStack out = this.output.getStack(i);
                 if (!out.isEmpty()) {
@@ -150,14 +163,36 @@ public class SunderingTableScreenHandler extends ScreenHandler {
                     this.output.setStack(i, ItemStack.EMPTY);
                 }
             }
+        } else if (!player.getWorld().isClient && !hasConsumed) {
+            for (int i = 0; i < 2; i++) {
+                this.output.setStack(i, ItemStack.EMPTY);
+                ItemStack out = this.input.getStack(i);
+                if (!out.isEmpty()) {
+                    boolean wentToPlayer = player.giveItemStack(out);
+                    if (!wentToPlayer) {
+                        player.dropItem(out, false);
+                    }
+                    this.input.setStack(i, ItemStack.EMPTY);
+                }
+            }
         }
     }
 
     private void clearInputSlots() {
         if (output.getStack(0).isEmpty() || output.getStack(1).isEmpty()) return;
+        acceptLevelCost();
         this.input.markDirty();
         this.input.getStack(0).setCount(input.getStack(0).getCount() - 1);
         this.input.getStack(1).setCount(input.getStack(1).getCount() - 1);
+    }
+
+    private void acceptLevelCost() {
+        ItemStack itemStack = input.getStack(0);
+        int totalCost = calculateEnchantmentCost(itemStack);
+        if (this.player.experienceLevel >= totalCost) {
+            this.player.addExperienceLevels(-totalCost);
+        }
+        hasConsumed = true;
     }
 
     @Override
@@ -172,7 +207,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         int playerInvEnd = this.slots.size() - 1;
 
         if (index >= playerInvStart) {
-            if (originalStack.hasEnchantments() && !originalStack.isOf(Items.ENCHANTED_GOLDEN_APPLE)) {
+            if ((originalStack.hasEnchantments() || originalStack.isOf(Items.ENCHANTED_BOOK)) && !originalStack.isOf(Items.ENCHANTED_GOLDEN_APPLE)) {
                 if (!this.insertItem(originalStack, inputStart, inputStart + 1, false)) {
                     return ItemStack.EMPTY;
                 }
@@ -193,6 +228,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             slot.setStack(ItemStack.EMPTY);
         } else {
             slot.markDirty();
+            clearInputSlots();
         }
         return copy;
     }
@@ -219,41 +255,147 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             clearInputSlots();
         }
         if ((slotIndex == 0 || slotIndex == 1) && actionType == SlotActionType.PICKUP) {
-            updateOutputSlots();
+            if (output.isEmpty()) {
+                updateOutputSlots();
+                hasConsumed = false;
+            }
         }
         super.onSlotClick(slotIndex, button, actionType, player);
     }
 
+    boolean hasConsumed = false;
     private void updateOutputSlots() {
-        if (!(output.getStack(0).isEmpty() && output.getStack(1).isEmpty())) return;
-        ItemStack itemStack = this.input.getStack(0).copy();
-        ItemStack bookStack = new ItemStack(this.input.getStack(1).getItem(), 1);
-        if (itemStack.isEmpty() || bookStack.isEmpty()) {
+//        ItemStack inputItemStack = this.input.getStack(0);
+//        ItemStack inputBookStack = this.input.getStack(1);
+//        ItemStack itemStack = inputItemStack.copy();
+//        ItemStack bookStack = new ItemStack(Items.ENCHANTED_BOOK, 1);
+//        ItemEnchantmentsComponent enchantments = inputItemStack.get(DataComponentTypes.ENCHANTMENTS);
+//        // If that's null, check if it's an enchanted book and get the stored enchantments instead.
+//        if (enchantments == null && inputItemStack.isOf(Items.ENCHANTED_BOOK)) {
+//            enchantments = inputItemStack.get(DataComponentTypes.STORED_ENCHANTMENTS);
+//        }
+//        if (hasConsumed && !output.isEmpty()) return;
+//        if ((inputItemStack.isEmpty() || inputBookStack.isEmpty())
+//                || (this.player.experienceLevel < calculateEnchantmentCost(inputItemStack)
+//                    && !this.player.isInCreativeMode())
+//                || (enchantments == null)
+//                || !(inputBookStack.isOf(Items.BOOK))
+//        ) {
+//            this.output.setStack(0, ItemStack.EMPTY);
+//            this.output.setStack(1, ItemStack.EMPTY);
+//            return;
+//        }
+//        ItemStack freshStackItem = new ItemStack(itemStack.getItem(), 1);
+//        ItemEnchantmentsComponent emptyEnchantmentsItem = freshStackItem.get(DataComponentTypes.ENCHANTMENTS);
+//        itemStack.set(DataComponentTypes.ENCHANTMENTS, emptyEnchantmentsItem);
+//
+//        List<Object2IntMap.Entry<RegistryEntry<Enchantment>>> entries = new ArrayList<>(enchantments.getEnchantmentEntries());
+//        int half = entries.size() / 2;
+//        for (int i = 0; i < half; i++) {
+//            RegistryEntry<Enchantment> enchantEntry = entries.get(i).getKey();
+//            int level = entries.get(i).getIntValue();
+//            itemStack.addEnchantment(enchantEntry, level);
+//        }
+//        for (int i = half; i < entries.size(); i++) {
+//            RegistryEntry<Enchantment> enchantEntry = entries.get(i).getKey();
+//            int level = entries.get(i).getIntValue();
+//            bookStack.addEnchantment(enchantEntry, level);
+//        }
+//        // set output slots with modified stacks
+//        this.output.setStack(0, itemStack);
+//        this.output.setStack(1, bookStack);
+
+        ItemStack inputItemStack = this.input.getStack(0);
+        ItemStack inputBookStack = this.input.getStack(1);
+
+        boolean oneOutputEmptyButNotBoth = this.output.getStack(0).isEmpty() != this.output.getStack(1).isEmpty();
+        if (oneOutputEmptyButNotBoth) return;
+
+        // If an enchanted book is used, get its stored enchantments. Otherwise, get the standard enchantments.
+        ItemEnchantmentsComponent enchantments;
+        if (inputItemStack.isOf(Items.ENCHANTED_BOOK)) {
+            enchantments = inputItemStack.get(DataComponentTypes.STORED_ENCHANTMENTS);
+        } else {
+            enchantments = inputItemStack.get(DataComponentTypes.ENCHANTMENTS);
+        }
+
+        // --- Start of refined early return checks ---
+        // Return early if any required items are missing, or conditions are not met.
+        if (inputItemStack.isEmpty() || inputBookStack.isEmpty()) {
             this.output.setStack(0, ItemStack.EMPTY);
             this.output.setStack(1, ItemStack.EMPTY);
             return;
         }
-        ItemEnchantmentsComponent enchantments = itemStack.copy().get(DataComponentTypes.ENCHANTMENTS);
-        if (enchantments == null) return;
-        ItemStack freshStack = new ItemStack(itemStack.getItem(), 1);
-        ItemEnchantmentsComponent emptyEnchantments = freshStack.get(DataComponentTypes.ENCHANTMENTS);
-        itemStack.set(DataComponentTypes.ENCHANTMENTS, emptyEnchantments);
+        if (this.player.experienceLevel < calculateEnchantmentCost(inputItemStack) && !this.player.isInCreativeMode()) {
+            this.output.setStack(0, ItemStack.EMPTY);
+            this.output.setStack(1, ItemStack.EMPTY);
+            return;
+        }
+        if (enchantments == null || enchantments.isEmpty()) {
+            this.output.setStack(0, ItemStack.EMPTY);
+            this.output.setStack(1, ItemStack.EMPTY);
+            return;
+        }
+        if (!inputBookStack.isOf(Items.BOOK)) {
+            this.output.setStack(0, ItemStack.EMPTY);
+            this.output.setStack(1, ItemStack.EMPTY);
+            return;
+        }
+        // --- End of refined early return checks ---
+
+        // The rest of the logic remains mostly the same, now with an assured set of enchantments.
+        boolean isInputBook = inputItemStack.isOf(Items.ENCHANTED_BOOK);
+
+        ItemStack outputItem;
+        if (isInputBook) {
+            outputItem = new ItemStack(Items.ENCHANTED_BOOK, 1);
+        } else {
+            outputItem = new ItemStack(inputItemStack.getItem(), 1);
+        }
+        ItemStack outputBook = new ItemStack(Items.ENCHANTED_BOOK, 1);
+
         List<Object2IntMap.Entry<RegistryEntry<Enchantment>>> entries = new ArrayList<>(enchantments.getEnchantmentEntries());
         int half = entries.size() / 2;
-        List<Object2IntMap.Entry<RegistryEntry<Enchantment>>> list = new ArrayList<>(entries);
+
+        ItemEnchantmentsComponent.Builder itemEnchantmentsBuilder = new ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT);
+        ItemEnchantmentsComponent.Builder bookEnchantmentsBuilder = new ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT);
+
         for (int i = 0; i < half; i++) {
-            RegistryEntry<Enchantment> enchantEntry = list.get(i).getKey();
-            int level = list.get(i).getIntValue();
-            itemStack.addEnchantment(enchantEntry, level);
+            Object2IntMap.Entry<RegistryEntry<Enchantment>> entry = entries.get(i);
+            itemEnchantmentsBuilder.add(entry.getKey(), entry.getIntValue());
         }
-        for (int i = half; i < list.size(); i++) {
-            RegistryEntry<Enchantment> enchantEntry = list.get(i).getKey();
-            int level = list.get(i).getIntValue();
-            bookStack.addEnchantment(enchantEntry, level);
+        for (int i = half; i < entries.size(); i++) {
+            Object2IntMap.Entry<RegistryEntry<Enchantment>> entry = entries.get(i);
+            bookEnchantmentsBuilder.add(entry.getKey(), entry.getIntValue());
         }
-        // Set output slots with modified stacks
-        this.output.setStack(0, itemStack);
-        this.output.setStack(1, bookStack);
+
+        if (isInputBook) {
+            outputItem.set(DataComponentTypes.STORED_ENCHANTMENTS, itemEnchantmentsBuilder.build());
+        } else {
+            outputItem.set(DataComponentTypes.ENCHANTMENTS, itemEnchantmentsBuilder.build());
+        }
+        outputBook.set(DataComponentTypes.STORED_ENCHANTMENTS, bookEnchantmentsBuilder.build());
+
+        this.output.setStack(0, outputItem);
+        this.output.setStack(1, outputBook);
     }
+
+    private int calculateEnchantmentCost(ItemStack itemStack) {
+        int cost = 0;
+        ItemEnchantmentsComponent enchantments = itemStack.get(DataComponentTypes.ENCHANTMENTS);
+        if (enchantments != null) {
+            for (var entry : enchantments.getEnchantmentEntries()) {
+                Enchantment enchantment = entry.getKey().value();
+                int level = entry.getIntValue();
+                cost += level + enchantmentCostWeight(enchantment) / 2;
+            }
+        }
+        return cost;
+    }
+
+    private int enchantmentCostWeight(Enchantment enchantment) {
+        return enchantment.getWeight();
+    }
+
 }
 
