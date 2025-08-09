@@ -4,21 +4,15 @@ import gradientascent.bookbook.bookbookblocks.BookBookBlocks;
 import gradientascent.bookbook.bookbookblocks.entities.SunderingTableBlockEntity;
 import gradientascent.bookbook.network.BlockPosPayload;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.component.ComponentMap;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SimpleInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemConvertible;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.screen.ArrayPropertyDelegate;
 import net.minecraft.screen.PropertyDelegate;
@@ -174,8 +168,6 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         ItemStack copy = originalStack.copy();
 
         int inputStart = 0;
-        int outputEnd = 3;
-
         int playerInvStart = 4;
         int playerInvEnd = this.slots.size() - 1;
 
@@ -191,13 +183,11 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             } else {
                 return ItemStack.EMPTY;
             }
-        } else if (index <= outputEnd) {
+        } else {
             if (!this.insertItem(originalStack, playerInvStart, playerInvEnd + 1, true)) {
                 return ItemStack.EMPTY;
             }
             clearInputSlots();
-        } else {
-            return ItemStack.EMPTY;
         }
         if (originalStack.isEmpty()) {
             slot.setStack(ItemStack.EMPTY);
