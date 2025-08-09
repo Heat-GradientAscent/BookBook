@@ -265,49 +265,8 @@ public class SunderingTableScreenHandler extends ScreenHandler {
 
     boolean hasConsumed = false;
     private void updateOutputSlots() {
-//        ItemStack inputItemStack = this.input.getStack(0);
-//        ItemStack inputBookStack = this.input.getStack(1);
-//        ItemStack itemStack = inputItemStack.copy();
-//        ItemStack bookStack = new ItemStack(Items.ENCHANTED_BOOK, 1);
-//        ItemEnchantmentsComponent enchantments = inputItemStack.get(DataComponentTypes.ENCHANTMENTS);
-//        // If that's null, check if it's an enchanted book and get the stored enchantments instead.
-//        if (enchantments == null && inputItemStack.isOf(Items.ENCHANTED_BOOK)) {
-//            enchantments = inputItemStack.get(DataComponentTypes.STORED_ENCHANTMENTS);
-//        }
-//        if (hasConsumed && !output.isEmpty()) return;
-//        if ((inputItemStack.isEmpty() || inputBookStack.isEmpty())
-//                || (this.player.experienceLevel < calculateEnchantmentCost(inputItemStack)
-//                    && !this.player.isInCreativeMode())
-//                || (enchantments == null)
-//                || !(inputBookStack.isOf(Items.BOOK))
-//        ) {
-//            this.output.setStack(0, ItemStack.EMPTY);
-//            this.output.setStack(1, ItemStack.EMPTY);
-//            return;
-//        }
-//        ItemStack freshStackItem = new ItemStack(itemStack.getItem(), 1);
-//        ItemEnchantmentsComponent emptyEnchantmentsItem = freshStackItem.get(DataComponentTypes.ENCHANTMENTS);
-//        itemStack.set(DataComponentTypes.ENCHANTMENTS, emptyEnchantmentsItem);
-//
-//        List<Object2IntMap.Entry<RegistryEntry<Enchantment>>> entries = new ArrayList<>(enchantments.getEnchantmentEntries());
-//        int half = entries.size() / 2;
-//        for (int i = 0; i < half; i++) {
-//            RegistryEntry<Enchantment> enchantEntry = entries.get(i).getKey();
-//            int level = entries.get(i).getIntValue();
-//            itemStack.addEnchantment(enchantEntry, level);
-//        }
-//        for (int i = half; i < entries.size(); i++) {
-//            RegistryEntry<Enchantment> enchantEntry = entries.get(i).getKey();
-//            int level = entries.get(i).getIntValue();
-//            bookStack.addEnchantment(enchantEntry, level);
-//        }
-//        // set output slots with modified stacks
-//        this.output.setStack(0, itemStack);
-//        this.output.setStack(1, bookStack);
-
         ItemStack inputItemStack = this.input.getStack(0);
         ItemStack inputBookStack = this.input.getStack(1);
-
         boolean oneOutputEmptyButNotBoth = this.output.getStack(0).isEmpty() != this.output.getStack(1).isEmpty();
         if (oneOutputEmptyButNotBoth) return;
 
@@ -318,9 +277,6 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         } else {
             enchantments = inputItemStack.get(DataComponentTypes.ENCHANTMENTS);
         }
-
-        // --- Start of refined early return checks ---
-        // Return early if any required items are missing, or conditions are not met.
         if (inputItemStack.isEmpty() || inputBookStack.isEmpty()) {
             this.output.setStack(0, ItemStack.EMPTY);
             this.output.setStack(1, ItemStack.EMPTY);
@@ -341,11 +297,8 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             this.output.setStack(1, ItemStack.EMPTY);
             return;
         }
-        // --- End of refined early return checks ---
 
-        // The rest of the logic remains mostly the same, now with an assured set of enchantments.
         boolean isInputBook = inputItemStack.isOf(Items.ENCHANTED_BOOK);
-
         ItemStack outputItem;
         if (isInputBook) {
             outputItem = new ItemStack(Items.ENCHANTED_BOOK, 1);
@@ -356,10 +309,8 @@ public class SunderingTableScreenHandler extends ScreenHandler {
 
         List<Object2IntMap.Entry<RegistryEntry<Enchantment>>> entries = new ArrayList<>(enchantments.getEnchantmentEntries());
         int half = entries.size() / 2;
-
         ItemEnchantmentsComponent.Builder itemEnchantmentsBuilder = new ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT);
         ItemEnchantmentsComponent.Builder bookEnchantmentsBuilder = new ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT);
-
         for (int i = 0; i < half; i++) {
             Object2IntMap.Entry<RegistryEntry<Enchantment>> entry = entries.get(i);
             itemEnchantmentsBuilder.add(entry.getKey(), entry.getIntValue());
@@ -368,7 +319,6 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             Object2IntMap.Entry<RegistryEntry<Enchantment>> entry = entries.get(i);
             bookEnchantmentsBuilder.add(entry.getKey(), entry.getIntValue());
         }
-
         if (isInputBook) {
             outputItem.set(DataComponentTypes.STORED_ENCHANTMENTS, itemEnchantmentsBuilder.build());
         } else {
