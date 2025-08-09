@@ -140,6 +140,16 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         super.onClosed(player);
         if (!player.getWorld().isClient) {
             this.dropInventory(player, this.input);
+            for (int i = 0; i < 2; i++) {
+                ItemStack out = this.output.getStack(i);
+                if (!out.isEmpty()) {
+                    boolean wentToPlayer = player.giveItemStack(out);
+                    if (!wentToPlayer) {
+                        player.dropItem(out, false);
+                    }
+                    this.output.setStack(i, ItemStack.EMPTY);
+                }
+            }
         }
     }
 
@@ -202,7 +212,6 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         }
     }
 
-    private boolean inputsConsumed = false;
     @Override
     public void onSlotClick(int slotIndex, int button, SlotActionType actionType, PlayerEntity player) {
         if (
