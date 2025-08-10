@@ -27,7 +27,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
 
     private PlayerEntity player;
     private ScreenHandlerContext context;
-    private PropertyDelegate propertyDelegate;
+    public PropertyDelegate propertyDelegate;
     private boolean updating = false;
     private final Inventory input = new SimpleInventory(2) {
         @Override
@@ -253,6 +253,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         } else {
             slot.markDirty();
         }
+        updateSunderCost();
         return copy;
     }
 
@@ -271,45 +272,71 @@ public class SunderingTableScreenHandler extends ScreenHandler {
     public void onSlotClick(int slotIndex, int button, SlotActionType actionType, PlayerEntity player) {
         boolean isOutputClick = (slotIndex == 2 || slotIndex == 3) &&
                 (actionType == SlotActionType.PICKUP || actionType == SlotActionType.THROW);
+        super.onSlotClick(slotIndex, button, actionType, player);
         if (isOutputClick) {
-            super.onSlotClick(slotIndex, button, actionType, player);
+            boolean notEnoughEnchants = false;
+            ItemEnchantmentsComponent enchantments;
+            ItemStack inputItemStack = input.getStack(0);
+            if (inputItemStack.isOf(Items.ENCHANTED_BOOK)) {
+                enchantments = inputItemStack.get(DataComponentTypes.STORED_ENCHANTMENTS);
+            } else {
+                enchantments = inputItemStack.get(DataComponentTypes.ENCHANTMENTS);
+            }
+            if (enchantments != null) {
+                if (enchantments.getEnchantmentEntries().size() < 2 && inputItemStack.isOf(Items.ENCHANTED_BOOK)) {
+                    this.propertyDelegate.set(0, 0);
+                    notEnoughEnchants = true;
+                }
+            }
+            if ((updateSunderCost() == 0)
+                || (input.getStack(0).isEmpty() || input.getStack(1).isEmpty())
+                || (notEnoughEnchants)
+                || (this.player.experienceLevel < calculateEnchantmentCost(inputItemStack) && !this.player.isInCreativeMode())
+            ) {
+                return;
+            }
             consumeInputsForOperation();
+            updateSunderCost();
             return;
         }
         if ((slotIndex == 0 || slotIndex == 1) && actionType == SlotActionType.PICKUP) {
+            updateSunderCost();
             updateOutputSlots();
             hasConsumed = false;
         }
-        super.onSlotClick(slotIndex, button, actionType, player);
     }
 
     boolean hasConsumed = false;
     private void updateOutputSlots() {
         ItemStack inputItemStack = this.input.getStack(0);
         ItemStack inputBookStack = this.input.getStack(1);
-        boolean oneOutputEmptyButNotBoth = this.output.getStack(0).isEmpty() != this.output.getStack(1).isEmpty();
+        ItemStack outputItemStack = this.output.getStack(0);
+        ItemStack outputBookStack = this.output.getStack(1);
+        // mid-transaction, always escape first
+        boolean oneOutputEmptyButNotBoth = outputItemStack.isEmpty() != outputBookStack.isEmpty();
         if (oneOutputEmptyButNotBoth) return;
-
-        ItemEnchantmentsComponent enchantments;
-        if (inputItemStack.isOf(Items.ENCHANTED_BOOK)) {
-            enchantments = inputItemStack.get(DataComponentTypes.STORED_ENCHANTMENTS);
-            if (enchantments != null) {
-                if (enchantments.getEnchantmentEntries().size() < 2) {
-                    return;
-                }
-            }
-        } else {
-            enchantments = inputItemStack.get(DataComponentTypes.ENCHANTMENTS);
-        }
+        // no possible transaction, escape second plus reset outputs
         if (inputItemStack.isEmpty() || inputBookStack.isEmpty()) {
             output.removeStack(0);
             output.removeStack(1);
             return;
         }
-        if (this.player.experienceLevel < calculateEnchantmentCost(inputItemStack) && !this.player.isInCreativeMode()) {
+        // too expensive, escape third
+        if (updateSunderCost() == 0) {
             return;
         }
-        if (enchantments == null || enchantments.isEmpty()) {
+        // if input item has only 1 enchant
+        ItemEnchantmentsComponent enchantments;
+        if (inputItemStack.isOf(Items.ENCHANTED_BOOK)) {
+            enchantments = inputItemStack.get(DataComponentTypes.STORED_ENCHANTMENTS);
+        } else {
+            enchantments = inputItemStack.get(DataComponentTypes.ENCHANTMENTS);
+        }
+        if (enchantments != null && enchantments.getEnchantmentEntries().size() < 2 && inputItemStack.isOf(Items.ENCHANTED_BOOK)) {
+            this.propertyDelegate.set(0, 0);
+            return;
+        }
+        if (this.player.experienceLevel < calculateEnchantmentCost(inputItemStack) && !this.player.isInCreativeMode()) {
             return;
         }
 
@@ -325,6 +352,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         }
         ItemStack outputBook = new ItemStack(Items.ENCHANTED_BOOK, 1);
 
+        assert enchantments != null;
         List<Object2IntMap.Entry<RegistryEntry<Enchantment>>> entries = new ArrayList<>(enchantments.getEnchantmentEntries());
         int half = entries.size() / 2;
         ItemEnchantmentsComponent.Builder itemEnchantmentsBuilder = new ItemEnchantmentsComponent.Builder(ItemEnchantmentsComponent.DEFAULT);
@@ -344,6 +372,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         }
         outputBook.set(DataComponentTypes.STORED_ENCHANTMENTS, bookEnchantmentsBuilder.build());
 
+        updateSunderCost();
         this.output.setStack(0, outputItem);
         this.output.setStack(1, outputBook);
     }
@@ -386,11 +415,36 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         if (!this.player.isInCreativeMode() && cost > 0) {
             this.player.addExperienceLevels(-cost);
         }
+        updateSunderCost();
 
         decrementStack(this.input, 0);
         decrementStack(this.input, 1);
         this.input.markDirty();
         this.hasConsumed = true;
+    }
+
+    private int updateSunderCost() {
+        ItemStack inputItemStack = this.input.getStack(0);
+        ItemStack bookItemStack = this.input.getStack(1);
+        int currentEnchantmentCost = 0;
+        ItemEnchantmentsComponent enchantments;
+        if (inputItemStack.isOf(Items.ENCHANTED_BOOK)) {
+            enchantments = inputItemStack.get(DataComponentTypes.STORED_ENCHANTMENTS);
+        } else {
+            enchantments = inputItemStack.get(DataComponentTypes.ENCHANTMENTS);
+        }
+        if (enchantments != null && enchantments.getEnchantmentEntries().size() < 2 && inputItemStack.isOf(Items.ENCHANTED_BOOK)) {
+            this.propertyDelegate.set(0, 0);
+            return currentEnchantmentCost;
+        }
+        if (inputItemStack.isEmpty() || bookItemStack.isEmpty()) {
+            this.propertyDelegate.set(0, currentEnchantmentCost);
+            return currentEnchantmentCost;
+        }
+        int cost = calculateEnchantmentCost(inputItemStack);
+        currentEnchantmentCost = Math.max(cost, 0);
+        this.propertyDelegate.set(0, currentEnchantmentCost);
+        return currentEnchantmentCost;
     }
 }
 
