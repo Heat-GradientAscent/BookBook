@@ -127,9 +127,8 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             @Override
             public void onTakeItem(PlayerEntity player, ItemStack stack) {
                 super.onTakeItem(player, stack);
-                clearInputSlots();
+                if (!hasConsumed) consumeInputsForOperation();
                 updateOutputSlots();
-                playSunderSound();
             }
         });
         this.addSlot(new Slot(output, BOOK_SLOT, 151, 36) {
@@ -137,9 +136,8 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             @Override
             public void onTakeItem(PlayerEntity player, ItemStack stack) {
                 super.onTakeItem(player, stack);
-                clearInputSlots();
+                if (!hasConsumed) consumeInputsForOperation();
                 updateOutputSlots();
-                playSunderSound();
             }
         });
     }
@@ -189,24 +187,6 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         }
     }
 
-    private void clearInputSlots() {
-        if (output.getStack(0).isEmpty() || output.getStack(1).isEmpty()) return;
-        if (this.player.experienceLevel < calculateEnchantmentCost(input.getStack(0)) && !this.player.isInCreativeMode()) return;
-        acceptLevelCost();
-        this.input.markDirty();
-        this.input.getStack(0).decrement(1);
-        this.input.getStack(1).decrement(1);
-    }
-
-    private void acceptLevelCost() {
-        ItemStack itemStack = input.getStack(0);
-        int totalCost = calculateEnchantmentCost(itemStack);
-        if (this.player.experienceLevel >= totalCost) {
-            this.player.addExperienceLevels(-totalCost);
-        }
-        hasConsumed = true;
-    }
-
     @Override
     public ItemStack quickMove(PlayerEntity player, int index) {
         Slot slot = this.slots.get(index);
@@ -239,8 +219,9 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             if (!this.insertItem(originalStack, playerInvStart, playerInvEnd + 1, true)) {
                 return ItemStack.EMPTY;
             }
-            playSunderSound();
-            consumeInputsForOperation();
+            if (!hasConsumed) {
+                consumeInputsForOperation();
+            }
         }
         else {
             if (!this.insertItem(originalStack, playerInvStart, playerInvEnd + 1, true)) {
@@ -295,7 +276,6 @@ public class SunderingTableScreenHandler extends ScreenHandler {
                 return;
             }
             consumeInputsForOperation();
-            updateSunderCost();
             return;
         }
         if ((slotIndex == 0 || slotIndex == 1) && actionType == SlotActionType.PICKUP) {
@@ -314,6 +294,8 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         // mid-transaction, always escape first
         boolean oneOutputEmptyButNotBoth = outputItemStack.isEmpty() != outputBookStack.isEmpty();
         if (oneOutputEmptyButNotBoth) return;
+        this.hasConsumed = false;
+        hasPlayedSound[0] = false;
         // no possible transaction, escape second plus reset outputs
         if (inputItemStack.isEmpty() || inputBookStack.isEmpty()) {
             output.removeStack(0);
@@ -394,14 +376,6 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         return cost;
     }
 
-    private void decrementStack(Inventory inv, int slot) {
-        ItemStack s = inv.getStack(slot);
-        if (s.isEmpty()) return;
-        int newCount = s.getCount() - 1;
-        if (newCount <= 0) inv.setStack(slot, ItemStack.EMPTY);
-        else s.setCount(newCount);
-    }
-
     private int enchantmentCostWeight(Enchantment enchantment) {
         return enchantment.getWeight();
     }
@@ -415,9 +389,10 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             this.player.addExperienceLevels(-cost);
         }
         updateSunderCost();
+        playSunderSound();
 
-        decrementStack(this.input, 0);
-        decrementStack(this.input, 1);
+        this.input.getStack(0).decrement(1);
+        this.input.getStack(1).decrement(1);
         this.input.markDirty();
         this.hasConsumed = true;
     }
@@ -462,4 +437,3 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         }
     }
 }
-
