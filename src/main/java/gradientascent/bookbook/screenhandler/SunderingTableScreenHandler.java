@@ -20,6 +20,9 @@ import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.ScreenHandlerContext;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
+
 import java.util.*;
 
 
@@ -39,6 +42,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         }
     }; // Input
     private final Inventory output = new SimpleInventory(2); // Output
+    private final boolean[] hasPlayedSound = {false};
 
     // client constructor
     public SunderingTableScreenHandler(int syncId, PlayerInventory playerInventory, BlockPosPayload payload) {
@@ -121,27 +125,21 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         this.addSlot(new Slot(output, ITEM_SLOT, 115, 36) {
             @Override public boolean canInsert(ItemStack stack) { return false; }
             @Override
-            public boolean canTakeItems(PlayerEntity playerEntity) {
-                return true; // allow taking
-            }
-            @Override
             public void onTakeItem(PlayerEntity player, ItemStack stack) {
                 super.onTakeItem(player, stack);
                 clearInputSlots();
                 updateOutputSlots();
+                playSunderSound();
             }
         });
         this.addSlot(new Slot(output, BOOK_SLOT, 151, 36) {
             @Override public boolean canInsert(ItemStack stack) { return false; }
             @Override
-            public boolean canTakeItems(PlayerEntity playerEntity) {
-                return true; // allow taking
-            }
-            @Override
             public void onTakeItem(PlayerEntity player, ItemStack stack) {
-                super.onTakeItem(player, stack); // keep vanilla behavior
+                super.onTakeItem(player, stack);
                 clearInputSlots();
                 updateOutputSlots();
+                playSunderSound();
             }
         });
     }
@@ -241,6 +239,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             if (!this.insertItem(originalStack, playerInvStart, playerInvEnd + 1, true)) {
                 return ItemStack.EMPTY;
             }
+            playSunderSound();
             consumeInputsForOperation();
         }
         else {
@@ -445,6 +444,22 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         currentEnchantmentCost = Math.max(cost, 0);
         this.propertyDelegate.set(0, currentEnchantmentCost);
         return currentEnchantmentCost;
+    }
+
+    private void playSunderSound() {
+        if (!hasPlayedSound[0]) {
+            player.getWorld().playSound(
+                null,
+                player.getBlockPos(),
+                SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE,
+                SoundCategory.BLOCKS,
+                1.0F,
+                1.0F
+            );
+            hasPlayedSound[0] = true;
+        } else {
+            hasPlayedSound[0] = false;
+        }
     }
 }
 
