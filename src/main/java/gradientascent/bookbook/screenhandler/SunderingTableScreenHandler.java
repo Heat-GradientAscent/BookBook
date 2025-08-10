@@ -152,38 +152,55 @@ public class SunderingTableScreenHandler extends ScreenHandler {
     @Override
     public void onClosed(PlayerEntity player) {
         super.onClosed(player);
-        if (!player.getWorld().isClient && hasConsumed) {
-            for (int i = 0; i < 2; i++) {
-                ItemStack out = this.output.getStack(i);
-                if (!out.isEmpty()) {
-                    boolean wentToPlayer = player.giveItemStack(out);
+        if (player.getWorld().isClient) {
+            return;
+        }
+        boolean oneOutputEmptyButNotBoth = this.output.getStack(0).isEmpty() != this.output.getStack(1).isEmpty();
+        if (oneOutputEmptyButNotBoth) {
+            for (int i = 0; i < this.input.size(); i++) {
+                ItemStack stack = this.input.getStack(i);
+                if (!stack.isEmpty()) {
+                    boolean wentToPlayer = player.giveItemStack(stack);
                     if (!wentToPlayer) {
-                        player.dropItem(out, false);
+                        player.dropItem(stack, false);
+                    }
+                    this.input.setStack(i, ItemStack.EMPTY);
+                }
+            }
+            for (int i = 0; i < this.output.size(); i++) {
+                ItemStack stack = this.output.getStack(i);
+                if (!stack.isEmpty()) {
+                    boolean wentToPlayer = player.giveItemStack(stack);
+                    if (!wentToPlayer) {
+                        player.dropItem(stack, false);
                     }
                     this.output.setStack(i, ItemStack.EMPTY);
                 }
             }
-        } else if (!player.getWorld().isClient && !hasConsumed) {
-            for (int i = 0; i < 2; i++) {
-                this.output.setStack(i, ItemStack.EMPTY);
-                ItemStack out = this.input.getStack(i);
-                if (!out.isEmpty()) {
-                    boolean wentToPlayer = player.giveItemStack(out);
+        } else {
+            for (int i = 0; i < this.input.size(); i++) {
+                ItemStack stack = this.input.getStack(i);
+                if (!stack.isEmpty()) {
+                    boolean wentToPlayer = player.giveItemStack(stack);
                     if (!wentToPlayer) {
-                        player.dropItem(out, false);
+                        player.dropItem(stack, false);
                     }
                     this.input.setStack(i, ItemStack.EMPTY);
                 }
+            }
+            for (int i = 0; i < this.output.size(); i++) {
+                this.output.setStack(i, ItemStack.EMPTY);
             }
         }
     }
 
     private void clearInputSlots() {
         if (output.getStack(0).isEmpty() || output.getStack(1).isEmpty()) return;
+        if (this.player.experienceLevel < calculateEnchantmentCost(input.getStack(0)) && !this.player.isInCreativeMode()) return;
         acceptLevelCost();
         this.input.markDirty();
-        this.input.getStack(0).setCount(input.getStack(0).getCount() - 1);
-        this.input.getStack(1).setCount(input.getStack(1).getCount() - 1);
+        this.input.getStack(0).decrement(1);
+        this.input.getStack(1).decrement(1);
     }
 
     private void acceptLevelCost() {
@@ -199,15 +216,20 @@ public class SunderingTableScreenHandler extends ScreenHandler {
     public ItemStack quickMove(PlayerEntity player, int index) {
         Slot slot = this.slots.get(index);
         if (!slot.hasStack()) return ItemStack.EMPTY;
+
         ItemStack originalStack = slot.getStack();
         ItemStack copy = originalStack.copy();
 
         int inputStart = 0;
+        int outputStart = 2;
+        int outputEnd = 3;
         int playerInvStart = 4;
         int playerInvEnd = this.slots.size() - 1;
 
+        // Player inventory -> Input slots
         if (index >= playerInvStart) {
-            if ((originalStack.hasEnchantments() || originalStack.isOf(Items.ENCHANTED_BOOK)) && !originalStack.isOf(Items.ENCHANTED_GOLDEN_APPLE)) {
+            if ((originalStack.hasEnchantments() || originalStack.isOf(Items.ENCHANTED_BOOK)) &&
+                    !originalStack.isOf(Items.ENCHANTED_GOLDEN_APPLE)) {
                 if (!this.insertItem(originalStack, inputStart, inputStart + 1, false)) {
                     return ItemStack.EMPTY;
                 }
@@ -218,17 +240,27 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             } else {
                 return ItemStack.EMPTY;
             }
-        } else {
+        }
+        // Output slots -> Player inventory
+        else if (index >= outputStart) {
+            // Consume inputs BEFORE moving items so both outputs are still present
+            if (!output.getStack(0).isEmpty() && !output.getStack(1).isEmpty()) {
+                clearInputSlots();
+            }
             if (!this.insertItem(originalStack, playerInvStart, playerInvEnd + 1, true)) {
                 return ItemStack.EMPTY;
             }
-            clearInputSlots();
+        }
+        // Input slots -> Player inventory
+        else {
+            if (!this.insertItem(originalStack, playerInvStart, playerInvEnd + 1, true)) {
+                return ItemStack.EMPTY;
+            }
         }
         if (originalStack.isEmpty()) {
             slot.setStack(ItemStack.EMPTY);
         } else {
             slot.markDirty();
-            clearInputSlots();
         }
         return copy;
     }
@@ -247,8 +279,8 @@ public class SunderingTableScreenHandler extends ScreenHandler {
     @Override
     public void onSlotClick(int slotIndex, int button, SlotActionType actionType, PlayerEntity player) {
         if (
-                (slotIndex == 2 || slotIndex == 3)
-                && (actionType == SlotActionType.PICKUP || actionType == SlotActionType.THROW)
+            (slotIndex == 2 || slotIndex == 3)
+            && (actionType == SlotActionType.PICKUP || actionType == SlotActionType.THROW)
         ) {
             Slot outputSlot = this.slots.get(slotIndex);
             outputSlot.markDirty();
@@ -274,27 +306,23 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         ItemEnchantmentsComponent enchantments;
         if (inputItemStack.isOf(Items.ENCHANTED_BOOK)) {
             enchantments = inputItemStack.get(DataComponentTypes.STORED_ENCHANTMENTS);
+            if (enchantments != null) {
+                if (enchantments.getEnchantmentEntries().size() < 2) {
+                    return;
+                }
+            }
         } else {
             enchantments = inputItemStack.get(DataComponentTypes.ENCHANTMENTS);
         }
         if (inputItemStack.isEmpty() || inputBookStack.isEmpty()) {
-            this.output.setStack(0, ItemStack.EMPTY);
-            this.output.setStack(1, ItemStack.EMPTY);
+            output.removeStack(0);
+            output.removeStack(1);
             return;
         }
         if (this.player.experienceLevel < calculateEnchantmentCost(inputItemStack) && !this.player.isInCreativeMode()) {
-            this.output.setStack(0, ItemStack.EMPTY);
-            this.output.setStack(1, ItemStack.EMPTY);
             return;
         }
         if (enchantments == null || enchantments.isEmpty()) {
-            this.output.setStack(0, ItemStack.EMPTY);
-            this.output.setStack(1, ItemStack.EMPTY);
-            return;
-        }
-        if (!inputBookStack.isOf(Items.BOOK)) {
-            this.output.setStack(0, ItemStack.EMPTY);
-            this.output.setStack(1, ItemStack.EMPTY);
             return;
         }
 
@@ -303,7 +331,10 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         if (isInputBook) {
             outputItem = new ItemStack(Items.ENCHANTED_BOOK, 1);
         } else {
-            outputItem = new ItemStack(inputItemStack.getItem(), 1);
+            ItemStack freshStackOfInput = new ItemStack(inputItemStack.getItem(), 1);
+            ItemEnchantmentsComponent freshItemEnchantments = new ItemStack(freshStackOfInput.getItem()).get(DataComponentTypes.ENCHANTMENTS);
+            outputItem = inputItemStack.copy();
+            outputItem.set(DataComponentTypes.ENCHANTMENTS, freshItemEnchantments);
         }
         ItemStack outputBook = new ItemStack(Items.ENCHANTED_BOOK, 1);
 
@@ -337,7 +368,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             for (var entry : enchantments.getEnchantmentEntries()) {
                 Enchantment enchantment = entry.getKey().value();
                 int level = entry.getIntValue();
-                cost += level + enchantmentCostWeight(enchantment) / 2;
+                cost += 1 + level + (enchantmentCostWeight(enchantment) / 2);
             }
         }
         return cost;
@@ -346,6 +377,5 @@ public class SunderingTableScreenHandler extends ScreenHandler {
     private int enchantmentCostWeight(Enchantment enchantment) {
         return enchantment.getWeight();
     }
-
 }
 
