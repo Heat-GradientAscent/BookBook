@@ -26,7 +26,6 @@ import java.util.*;
 public class SunderingTableScreenHandler extends ScreenHandler {
 
     private PlayerEntity player;
-    private SunderingTableBlockEntity blockEntity;
     private ScreenHandlerContext context;
     private PropertyDelegate propertyDelegate;
     private boolean updating = false;
@@ -47,7 +46,6 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         var world = playerInventory.player.getWorld();
         var pos = payload.pos();
         this.player = playerInventory.player;
-        this.blockEntity = (SunderingTableBlockEntity) world.getBlockEntity(pos);
         this.context = ScreenHandlerContext.create(world, pos);
         this.propertyDelegate = new ArrayPropertyDelegate(2);
         this.addProperties(this.propertyDelegate);
@@ -57,7 +55,6 @@ public class SunderingTableScreenHandler extends ScreenHandler {
     public SunderingTableScreenHandler(int syncId, PlayerInventory playerInventory, SunderingTableBlockEntity blockEntity) {
         super(ScreenHandlerTypeInit.SUNDERING_TABLE_SCREEN_TYPE, syncId);
         this.player = playerInventory.player;
-        this.blockEntity = blockEntity;
         this.context = ScreenHandlerContext.create(blockEntity.getWorld(), blockEntity.getPos());
         this.propertyDelegate = new ArrayPropertyDelegate(2);
         this.addProperties(this.propertyDelegate);
@@ -216,17 +213,13 @@ public class SunderingTableScreenHandler extends ScreenHandler {
     public ItemStack quickMove(PlayerEntity player, int index) {
         Slot slot = this.slots.get(index);
         if (!slot.hasStack()) return ItemStack.EMPTY;
-
         ItemStack originalStack = slot.getStack();
         ItemStack copy = originalStack.copy();
-
         int inputStart = 0;
         int outputStart = 2;
-        int outputEnd = 3;
         int playerInvStart = 4;
         int playerInvEnd = this.slots.size() - 1;
 
-        // Player inventory -> Input slots
         if (index >= playerInvStart) {
             if ((originalStack.hasEnchantments() || originalStack.isOf(Items.ENCHANTED_BOOK)) &&
                     !originalStack.isOf(Items.ENCHANTED_GOLDEN_APPLE)) {
@@ -241,17 +234,15 @@ public class SunderingTableScreenHandler extends ScreenHandler {
                 return ItemStack.EMPTY;
             }
         }
-        // Output slots -> Player inventory
         else if (index >= outputStart) {
-            // Consume inputs BEFORE moving items so both outputs are still present
-            if (!output.getStack(0).isEmpty() && !output.getStack(1).isEmpty()) {
-                clearInputSlots();
-            }
+            ItemStack in = this.input.getStack(0);
+            int cost = calculateEnchantmentCost(in);
+            if (!this.player.isInCreativeMode() && this.player.experienceLevel < cost) return ItemStack.EMPTY;
             if (!this.insertItem(originalStack, playerInvStart, playerInvEnd + 1, true)) {
                 return ItemStack.EMPTY;
             }
+            consumeInputsForOperation();
         }
-        // Input slots -> Player inventory
         else {
             if (!this.insertItem(originalStack, playerInvStart, playerInvEnd + 1, true)) {
                 return ItemStack.EMPTY;
@@ -278,19 +269,16 @@ public class SunderingTableScreenHandler extends ScreenHandler {
 
     @Override
     public void onSlotClick(int slotIndex, int button, SlotActionType actionType, PlayerEntity player) {
-        if (
-            (slotIndex == 2 || slotIndex == 3)
-            && (actionType == SlotActionType.PICKUP || actionType == SlotActionType.THROW)
-        ) {
-            Slot outputSlot = this.slots.get(slotIndex);
-            outputSlot.markDirty();
-            clearInputSlots();
+        boolean isOutputClick = (slotIndex == 2 || slotIndex == 3) &&
+                (actionType == SlotActionType.PICKUP || actionType == SlotActionType.THROW);
+        if (isOutputClick) {
+            super.onSlotClick(slotIndex, button, actionType, player);
+            consumeInputsForOperation();
+            return;
         }
         if ((slotIndex == 0 || slotIndex == 1) && actionType == SlotActionType.PICKUP) {
-            if (output.isEmpty()) {
-                updateOutputSlots();
-                hasConsumed = false;
-            }
+            updateOutputSlots();
+            hasConsumed = false;
         }
         super.onSlotClick(slotIndex, button, actionType, player);
     }
@@ -302,7 +290,6 @@ public class SunderingTableScreenHandler extends ScreenHandler {
         boolean oneOutputEmptyButNotBoth = this.output.getStack(0).isEmpty() != this.output.getStack(1).isEmpty();
         if (oneOutputEmptyButNotBoth) return;
 
-        // If an enchanted book is used, get its stored enchantments. Otherwise, get the standard enchantments.
         ItemEnchantmentsComponent enchantments;
         if (inputItemStack.isOf(Items.ENCHANTED_BOOK)) {
             enchantments = inputItemStack.get(DataComponentTypes.STORED_ENCHANTMENTS);
@@ -362,20 +349,48 @@ public class SunderingTableScreenHandler extends ScreenHandler {
     }
 
     private int calculateEnchantmentCost(ItemStack itemStack) {
+        ItemEnchantmentsComponent enchantments;
+        if (itemStack.isOf(Items.ENCHANTED_BOOK)) {
+            enchantments = itemStack.get(DataComponentTypes.STORED_ENCHANTMENTS);
+        } else {
+            enchantments = itemStack.get(DataComponentTypes.ENCHANTMENTS);
+        }
+        if (enchantments == null || enchantments.isEmpty()) return 0;
+
         int cost = 0;
-        ItemEnchantmentsComponent enchantments = itemStack.get(DataComponentTypes.ENCHANTMENTS);
-        if (enchantments != null) {
-            for (var entry : enchantments.getEnchantmentEntries()) {
-                Enchantment enchantment = entry.getKey().value();
-                int level = entry.getIntValue();
-                cost += 1 + level + (enchantmentCostWeight(enchantment) / 2);
-            }
+        for (var entry : enchantments.getEnchantmentEntries()) {
+            Enchantment enchantment = entry.getKey().value();
+            int level = entry.getIntValue();
+            cost += 1 + level + (enchantmentCostWeight(enchantment) / 2);
         }
         return cost;
     }
 
+    private void decrementStack(Inventory inv, int slot) {
+        ItemStack s = inv.getStack(slot);
+        if (s.isEmpty()) return;
+        int newCount = s.getCount() - 1;
+        if (newCount <= 0) inv.setStack(slot, ItemStack.EMPTY);
+        else s.setCount(newCount);
+    }
+
     private int enchantmentCostWeight(Enchantment enchantment) {
         return enchantment.getWeight();
+    }
+
+    private void consumeInputsForOperation() {
+        ItemStack in = this.input.getStack(0);
+        int cost = calculateEnchantmentCost(in);
+
+        if (!this.player.isInCreativeMode() && this.player.experienceLevel < cost) return;
+        if (!this.player.isInCreativeMode() && cost > 0) {
+            this.player.addExperienceLevels(-cost);
+        }
+
+        decrementStack(this.input, 0);
+        decrementStack(this.input, 1);
+        this.input.markDirty();
+        this.hasConsumed = true;
     }
 }
 
