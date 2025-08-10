@@ -1,5 +1,6 @@
 package gradientascent.bookbook.screenhandler;
 
+import gradientascent.bookbook.bookbooksounds.SoundEventsInit;
 import gradientascent.bookbook.bookbookblocks.BookBookBlocks;
 import gradientascent.bookbook.bookbookblocks.entities.SunderingTableBlockEntity;
 import gradientascent.bookbook.network.BlockPosPayload;
@@ -21,7 +22,6 @@ import net.minecraft.screen.ScreenHandlerContext;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvents;
 
 import java.util.*;
 
@@ -451,7 +451,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
             player.getWorld().playSound(
                 null,
                 player.getBlockPos(),
-                SoundEvents.BLOCK_ENCHANTMENT_TABLE_USE,
+                SoundEventsInit.SUNDERING_TABLE_SUNDERS,
                 SoundCategory.BLOCKS,
                 1.0F,
                 1.0F

@@ -3,6 +3,7 @@ package gradientascent.bookbook;
 import gradientascent.bookbook.bookbookblocks.BlockEntityTypeInit;
 import gradientascent.bookbook.bookbookblocks.BookBookBlocks;
 import gradientascent.bookbook.bookbookitems.BookBookItems;
+import gradientascent.bookbook.bookbooksounds.SoundEventsInit;
 import gradientascent.bookbook.screenhandler.ScreenHandlerTypeInit;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.util.Identifier;
@@ -20,15 +21,21 @@ public class BookBook implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		// Items
 		BookBookItems.initialize();
+
+		// Blocks
 		BookBookBlocks.initialize();
 
 		// Entities
 		BlockEntityTypeInit.initialize();
 
-		// Screenhandlers
+		// Screen handlers
 		ScreenHandlerTypeInit.initialize();
-		LOGGER.info("BookBook is loaded!");
 
+		// Sounds
+		SoundEventsInit.initialize();
+
+		LOGGER.info("BookBook is loaded!");
 	}
 }

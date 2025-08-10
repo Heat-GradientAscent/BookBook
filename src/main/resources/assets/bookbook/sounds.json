@@ -1,0 +1,22 @@
+{
+  "sundering_table.sunder": {
+    "subtitle": "subtitles.sundering_table_sunder",
+    "sounds": [
+      {
+        "name": "bookbook:sundering_table_sunder1",
+        "weight": 1,
+        "stream": false
+      },
+      {
+        "name": "bookbook:sundering_table_sunder2",
+        "weight": 1,
+        "stream": false
+      },
+      {
+        "name": "bookbook:sundering_table_sunder3",
+        "weight": 1,
+        "stream": false
+      }
+    ]
+  }
+}
