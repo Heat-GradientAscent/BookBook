@@ -19,6 +19,9 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 public class SunderingTable extends Block implements BlockEntityProvider {
+    public static final BooleanProperty IN_USE = BooleanProperty.of("activated");
+    private static final VoxelShape SHAPE = Block.createCuboidShape(0, 0, 0, 16, 12, 16);
+
     public SunderingTable(Settings settings) {
         super(
             settings
@@ -29,8 +32,6 @@ public class SunderingTable extends Block implements BlockEntityProvider {
         );
         setDefaultState(getDefaultState().with(IN_USE, false));
     }
-
-    public static final BooleanProperty IN_USE = BooleanProperty.of("activated");
 
     @Override
     protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
@@ -58,8 +59,7 @@ public class SunderingTable extends Block implements BlockEntityProvider {
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView view, BlockPos pos, ShapeContext context) {
-        // From [0,0,0] to [16,12,16] in pixels -> in Minecraft units that's [0,0,0] to [1, 0.75, 1]
-        return Block.createCuboidShape(0, 0, 0, 16, 12, 16);
+        return SHAPE;
     }
 
     @Override
