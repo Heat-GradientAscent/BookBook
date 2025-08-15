@@ -44,7 +44,6 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-	
 }
 
 processResources {
@@ -60,9 +59,6 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 java {
-	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
-	// if it is present.
-	// If you remove this line, sources will not be generated.
 	withSourcesJar()
 
 	sourceCompatibility = JavaVersion.VERSION_21
@@ -75,6 +71,16 @@ jar {
 	from("LICENSE") {
 		rename { "${it}_${inputs.properties.archivesName}"}
 	}
+
+	from sourceSets.main.output
+	exclude 'gradientascent/bookbook/BookBookDataGenerator.class'
+	exclude 'gradientascent/bookbook/bookbookdata/**'
+	archiveFileName = "${archives_base_name}-${mod_version}+${minecraft_version}.jar"
+}
+
+tasks.sourcesJar {
+	from sourceSets.main.allSource
+	exclude 'gradientascent/bookbook/BookBookDataGenerator.java'
 }
 
 // configure the maven publication
