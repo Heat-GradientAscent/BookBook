@@ -23,20 +23,17 @@ public class BookBookBlocks {
 
     public static int getLuminance() { return 6; }
 
-    public static boolean getSpawning() {
-        return false;
-    }
+    public static boolean getSpawning() { return false; }
 
     public static final Block SUNDERING_TABLE = register(
-        new SunderingTable(AbstractBlock.Settings.create()),
-        "sundering_table",
-        true
+            new SunderingTable(AbstractBlock.Settings.create()),
+            "sundering_table",
+            true
     );
 
     public static void initialize() {
         ItemGroupEvents.modifyEntriesEvent(BookBookItems.CUSTOM_ITEM_GROUP_KEY).register(
-                (itemGroup) -> itemGroup.add(BookBookBlocks.SUNDERING_TABLE.asItem()
-            )
+                (itemGroup) -> itemGroup.add(BookBookBlocks.SUNDERING_TABLE.asItem())
         );
     }
 }

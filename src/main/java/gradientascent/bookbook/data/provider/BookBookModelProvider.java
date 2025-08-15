@@ -1,7 +1,6 @@
 package gradientascent.bookbook.data.provider;
 
 import gradientascent.bookbook.bookbookblocks.BookBookBlocks;
-import gradientascent.bookbook.bookbookitems.BookBookItems;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricModelProvider;
 import net.minecraft.data.client.BlockStateModelGenerator;
@@ -20,6 +19,6 @@ public class BookBookModelProvider extends FabricModelProvider {
 
     @Override
     public void generateItemModels(ItemModelGenerator itemModelGenerator) {
-        itemModelGenerator.register(BookBookItems.SUNDERING_TABLE, Models.CUBE_DIRECTIONAL);
+        itemModelGenerator.register(BookBookBlocks.SUNDERING_TABLE.asItem(), Models.CUBE_DIRECTIONAL);
     }
 }

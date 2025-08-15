@@ -1,8 +1,8 @@
 package gradientascent.bookbook.bookbookitems;
 
 import gradientascent.bookbook.BookBook;
+import gradientascent.bookbook.bookbookblocks.BookBookBlocks;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -12,19 +12,10 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public class BookBookItems {
-    public static Item register(Item item, String id) {
-        Identifier itemID = Identifier.of(BookBook.MOD_ID, id);
-        return Registry.register(Registries.ITEM, itemID, item);
-    }
-
-    public static final Item SUNDERING_TABLE = register(
-        new Item(new Item.Settings()),
-        "sundering_table"
-    );
-
     public static final RegistryKey<ItemGroup> CUSTOM_ITEM_GROUP_KEY = RegistryKey.of(Registries.ITEM_GROUP.getKey(), Identifier.of(BookBook.MOD_ID, "item_group"));
+
     public static final ItemGroup CUSTOM_ITEM_GROUP = FabricItemGroup.builder()
-            .icon(() -> new ItemStack(BookBookItems.SUNDERING_TABLE))
+            .icon(() -> new ItemStack(BookBookBlocks.SUNDERING_TABLE.asItem()))
             .displayName(Text.translatable("itemGroup.bookbook"))
             .build();
 
