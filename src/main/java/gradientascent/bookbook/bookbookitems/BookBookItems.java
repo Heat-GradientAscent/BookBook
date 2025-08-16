@@ -19,7 +19,7 @@ public class BookBookItems {
     public static void initialize() {
         CUSTOM_ITEM_GROUP = FabricItemGroup.builder()
                 .icon(() -> new ItemStack(BookBookBlocks.SUNDERING_TABLE.asItem()))
-                .displayName(Text.literal("itemGroup.bookbook"))
+                .displayName(Text.translatable("itemGroup.bookbook"))
                 .build();
 
         Registry.register(Registries.ITEM_GROUP, CUSTOM_ITEM_GROUP_KEY, CUSTOM_ITEM_GROUP);
