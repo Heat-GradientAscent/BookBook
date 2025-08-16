@@ -28,7 +28,6 @@ public class SunderingTableBlockEntity extends BlockEntity implements ExtendedSc
         super(BlockEntityTypeInit.SUNDERING_TABLE_BLOCK_ENTITY, pos, state);
     }
 
-
     @Override
     protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
         nbt.putInt("counter", this.counter);
@@ -46,9 +45,7 @@ public class SunderingTableBlockEntity extends BlockEntity implements ExtendedSc
     }
 
     @Override
-    public Text getDisplayName() {
-        return Text.of("Sunder");
-    }
+    public Text getDisplayName() { return Text.of("Sunder"); }
 
     @Override
     public @Nullable ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {

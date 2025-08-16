@@ -14,7 +14,6 @@ public class BookBookBlockLootTableProvider extends FabricBlockLootTableProvider
 
     @Override
     public void generate() {
-//        addDrop(BookBookBlocks.SUNDERING_TABLE);
-        addDrop(BookBookBlocks.SUNDERING_TABLE, this.drops(BookBookBlocks.SUNDERING_TABLE));
+        addDrop(BookBookBlocks.SUNDERING_TABLE);
     }
 }

@@ -14,12 +14,14 @@ import net.minecraft.util.Identifier;
 public class BookBookItems {
     public static final RegistryKey<ItemGroup> CUSTOM_ITEM_GROUP_KEY = RegistryKey.of(Registries.ITEM_GROUP.getKey(), Identifier.of(BookBook.MOD_ID, "item_group"));
 
-    public static final ItemGroup CUSTOM_ITEM_GROUP = FabricItemGroup.builder()
-            .icon(() -> new ItemStack(BookBookBlocks.SUNDERING_TABLE.asItem()))
-            .displayName(Text.translatable("itemGroup.bookbook"))
-            .build();
+    public static ItemGroup CUSTOM_ITEM_GROUP;
 
     public static void initialize() {
+        CUSTOM_ITEM_GROUP = FabricItemGroup.builder()
+                .icon(() -> new ItemStack(BookBookBlocks.SUNDERING_TABLE.asItem()))
+                .displayName(Text.literal("itemGroup.bookbook"))
+                .build();
+
         Registry.register(Registries.ITEM_GROUP, CUSTOM_ITEM_GROUP_KEY, CUSTOM_ITEM_GROUP);
     }
 }

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "#": "minecraft:blue_carpet",
+    "D": "minecraft:deepslate",
+    "O": "minecraft:obsidian",
+    "n": "minecraft:netherite_ingot"
+  },
+  "pattern": [
+    " # ",
+    "nOn",
+    "ODO"
+  ],
+  "result": {
+    "count": 1,
+    "id": "bookbook:sundering_table"
+  }
+}

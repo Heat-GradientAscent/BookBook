@@ -4,13 +4,10 @@ import gradientascent.bookbook.bookbookblocks.entities.SunderingTableBlockEntity
 import net.minecraft.block.*;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.ItemActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.shape.VoxelShape;
@@ -22,13 +19,18 @@ public class SunderingTable extends Block implements BlockEntityProvider {
     public static final BooleanProperty IN_USE = BooleanProperty.of("activated");
     private static final VoxelShape SHAPE = Block.createCuboidShape(0, 0, 0, 16, 12, 16);
 
+    public static int getLuminance() { return 6; }
+
+    public static boolean getSpawning() { return false; }
+
     public SunderingTable(Settings settings) {
         super(
             settings
+                .nonOpaque()
+                .luminance(s -> getLuminance())
+                .allowsSpawning((s, w, p, t) -> getSpawning())
                 .sounds(BlockSoundGroup.DEEPSLATE)
-                .luminance((BlockState state) -> BookBookBlocks.getLuminance())
                 .strength(3.0f, 1200.0f).requiresTool()
-                .allowsSpawning((state, world, pos, type) -> BookBookBlocks.getSpawning())
         );
         setDefaultState(getDefaultState().with(IN_USE, false));
     }
@@ -48,13 +50,7 @@ public class SunderingTable extends Block implements BlockEntityProvider {
                 world.setBlockState(pos, state.with(IN_USE, false));
             }
         }
-        return ActionResult.success(world.isClient);
-    }
-
-    // implement later for all interactions
-    @Override
-    protected ItemActionResult onUseWithItem(ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-        return super.onUseWithItem(stack, state, world, pos, player, hand, hit);
+        return ActionResult.SUCCESS;
     }
 
     @Override
@@ -64,7 +60,6 @@ public class SunderingTable extends Block implements BlockEntityProvider {
 
     @Override
     public VoxelShape getCollisionShape(BlockState state, BlockView view, BlockPos pos, ShapeContext context) {
-        // Usually same as outline
         return getOutlineShape(state, view, pos, context);
     }
 
