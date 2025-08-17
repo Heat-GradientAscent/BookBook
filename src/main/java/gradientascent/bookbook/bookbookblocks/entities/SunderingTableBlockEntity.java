@@ -36,7 +36,11 @@ public class SunderingTableBlockEntity extends BlockEntity implements ExtendedSc
     @Override
     protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
         var bookbookData = nbt.getCompound(BookBook.MOD_ID);
-        this.counter = bookbookData.getInt("counter");
+        if (bookbookData.isPresent()) {
+            if (bookbookData.get().getInt("counter").isPresent()) {
+                this.counter = bookbookData.get().getInt("counter").get();
+            }
+        }
     }
 
     @Override
