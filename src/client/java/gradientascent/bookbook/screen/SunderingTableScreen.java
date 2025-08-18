@@ -57,7 +57,7 @@ public class SunderingTableScreen extends HandledScreen<SunderingTableScreenHand
                 costText,
                 this.x + 166 - textWidth,
                 this.y + 58,
-                0x313131,
+                0xFF313131,
                 false
             );
         }
