@@ -3,10 +3,9 @@ package gradientascent.bookbook.screen;
 import gradientascent.bookbook.BookBook;
 import gradientascent.bookbook.screenhandler.SunderingTableScreenHandler;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.client.render.RenderLayer;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.text.OrderedText;
@@ -30,7 +29,7 @@ public class SunderingTableScreen extends HandledScreen<SunderingTableScreenHand
 
     @Override
     protected void drawBackground(DrawContext context, float delta, int mouseX, int mouseY) {
-        context.drawTexture(RenderLayer::getGuiTextured, TEXTURE, x, y, 0, 0, this.backgroundWidth, this.backgroundHeight, 256, 256);
+        context.drawTexture(RenderPipelines.GUI_TEXTURED, TEXTURE, x, y, 0, 0, this.backgroundWidth, this.backgroundHeight, 256, 256);
     }
 
     private String getSunderCostText() {
@@ -53,17 +52,13 @@ public class SunderingTableScreen extends HandledScreen<SunderingTableScreenHand
         if (!costString.isEmpty()) {
             OrderedText costText = Text.of(costString).asOrderedText();
             int textWidth = this.textRenderer.getWidth(costText);
-            this.textRenderer.draw(
+            context.drawText(
+                this.textRenderer,
                 costText,
-                (float) (this.x + 166 - textWidth),
-                (float) (this.y + 58),
+                this.x + 166 - textWidth,
+                this.y + 58,
                 0x313131,
-                false,
-                context.getMatrices().peek().getPositionMatrix(),
-                MinecraftClient.getInstance().getBufferBuilders().getEntityVertexConsumers(),
-                TextRenderer.TextLayerType.NORMAL,
-                0,
-                15728880
+                false
             );
         }
     }
