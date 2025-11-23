@@ -3,7 +3,7 @@
 	"id": "bookbook",
 	"version": "${version}",
 	"name": "BookBook",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "No more bad loot enchants. Separate the enchantments!",
 	"authors": [
 		"GradientAscent"
 	],
