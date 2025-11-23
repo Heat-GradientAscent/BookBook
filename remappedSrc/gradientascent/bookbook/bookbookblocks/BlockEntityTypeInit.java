@@ -11,7 +11,7 @@ import net.minecraft.registry.Registry;
 public class BlockEntityTypeInit {
     public static final BlockEntityType<SunderingTableBlockEntity> SUNDERING_TABLE_BLOCK_ENTITY = register(
         "sunder_table_entity",
-        FabricBlockEntityTypeBuilder.create(SunderingTableBlockEntity::new, BookBookBlocks.SUNDERING_TABLE).build(null)
+        FabricBlockEntityTypeBuilder.create(SunderingTableBlockEntity::new, BookBookBlocks.SUNDERING_TABLE).build()
     );
 
     public static <T extends BlockEntity> BlockEntityType<T> register(String name, BlockEntityType<T> type) {

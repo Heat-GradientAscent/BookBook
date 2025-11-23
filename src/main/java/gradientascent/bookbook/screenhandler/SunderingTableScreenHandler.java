@@ -46,8 +46,8 @@ public class SunderingTableScreenHandler extends ScreenHandler {
 
     // client constructor
     public SunderingTableScreenHandler(int syncId, PlayerInventory playerInventory, BlockPosPayload payload) {
-        this(syncId, playerInventory, (SunderingTableBlockEntity) playerInventory.player.getWorld().getBlockEntity(payload.pos()));
-        var world = playerInventory.player.getWorld();
+        this(syncId, playerInventory, (SunderingTableBlockEntity) playerInventory.player.getEntityWorld().getBlockEntity(payload.pos()));
+        var world = playerInventory.player.getEntityWorld();
         var pos = payload.pos();
         this.player = playerInventory.player;
         this.context = ScreenHandlerContext.create(world, pos);
@@ -145,7 +145,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
     @Override
     public void onClosed(PlayerEntity player) {
         super.onClosed(player);
-        if (player.getWorld().isClient) {
+        if (player.getEntityWorld().isClient()) {
             return;
         }
         boolean oneOutputEmptyButNotBoth = this.output.getStack(0).isEmpty() != this.output.getStack(1).isEmpty();
@@ -423,7 +423,7 @@ public class SunderingTableScreenHandler extends ScreenHandler {
 
     private void playSunderSound() {
         if (!hasPlayedSound[0]) {
-            player.getWorld().playSound(
+            player.getEntityWorld().playSound(
                 null,
                 player.getBlockPos(),
                 SoundEventsInit.SUNDERING_TABLE_SUNDERS,

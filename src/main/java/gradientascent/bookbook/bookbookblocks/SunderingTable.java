@@ -42,7 +42,7 @@ public class SunderingTable extends Block implements BlockEntityProvider {
 
     @Override
     protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
-        if (!world.isClient) {
+        if (!world.isClient()) {
             BlockEntity blockEntity = world.getBlockEntity(pos);
             if (blockEntity instanceof SunderingTableBlockEntity sunderingTableBlockEntity && player != null) {
                 player.openHandledScreen(sunderingTableBlockEntity);

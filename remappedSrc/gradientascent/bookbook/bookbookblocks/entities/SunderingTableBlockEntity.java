@@ -17,6 +17,9 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.storage.NbtWriteView;
+import net.minecraft.storage.ReadView;
+import net.minecraft.storage.WriteView;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.Nullable;
@@ -29,14 +32,16 @@ public class SunderingTableBlockEntity extends BlockEntity implements ExtendedSc
     }
 
     @Override
-    protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-        nbt.putInt("counter", this.counter);
+    public void writeFullData(WriteView view) {
+        super.writeFullData(view);
+        view.get(BookBook.MOD_ID).putInt("counter", this.counter);
     }
 
     @Override
-    protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-        var bookbookData = nbt.getCompound(BookBook.MOD_ID);
-        this.counter = bookbookData.getInt("counter");
+    protected void readData(ReadView view) {
+        super.readData(view);
+        var bookbookData = view.getReadView(BookBook.MOD_ID);
+        this.counter = bookbookData.getInt("counter", this.counter);
     }
 
     @Override
@@ -59,8 +64,8 @@ public class SunderingTableBlockEntity extends BlockEntity implements ExtendedSc
 
     @Override
     public NbtCompound toInitialChunkDataNbt(RegistryWrapper.WrapperLookup registryLookup) {
-        var nbt = super.toInitialChunkDataNbt(registryLookup);
-        writeNbt(nbt, registryLookup);
+        NbtCompound nbt = super.toInitialChunkDataNbt(registryLookup);
+        nbt.putInt("counter", this.counter);
         return nbt;
     }
 }

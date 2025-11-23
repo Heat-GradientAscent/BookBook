@@ -15,7 +15,7 @@ public class BookBookBlockTagProvider extends FabricTagProvider.BlockTagProvider
 
     @Override
     protected void configure(RegistryWrapper.WrapperLookup wrapperLookup) {
-        getOrCreateTagBuilder(BlockTags.NEEDS_DIAMOND_TOOL).add(BookBookBlocks.SUNDERING_TABLE);
-        getOrCreateTagBuilder(BlockTags.PICKAXE_MINEABLE).add(BookBookBlocks.SUNDERING_TABLE);
+        valueLookupBuilder(BlockTags.NEEDS_DIAMOND_TOOL).add(BookBookBlocks.SUNDERING_TABLE);
+        valueLookupBuilder(BlockTags.PICKAXE_MINEABLE).add(BookBookBlocks.SUNDERING_TABLE);
     }
 }
